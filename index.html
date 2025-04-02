@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aptos Voting DApp</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@petra-plugin/aptos-wallet-adapter@1.0.0/dist/index.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-vote-yea"></i> Aptos Voting DApp</h1>
+            <div class="wallet-section">
+                <span id="walletAddress" class="wallet-address">Not Connected</span>
+                <button id="connectWallet" class="btn">
+                    <i class="fas fa-wallet"></i> Connect Petra Wallet
+                </button>
+                <button id="disconnectWalletBtn" class="btn btn-secondary" style="display: none;">
+                    <i class="fas fa-sign-out-alt"></i> Disconnect
+                </button>
+            </div>
+        </header>
+
+        <div class="create-poll">
+            <h2><i class="fas fa-plus-circle"></i> Create New Poll</h2>
+            <form id="create-poll-form">
+                <div class="form-group">
+                    <label for="poll-title">Poll Title</label>
+                    <input type="text" id="poll-title" name="poll-title" required placeholder="Enter poll title">
+                </div>
+                <div class="form-group">
+                    <label for="poll-description">Description</label>
+                    <textarea id="poll-description" name="poll-description" required placeholder="Describe your poll"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="poll-category">Category</label>
+                    <select id="poll-category" name="poll-category" required>
+                        <option value="">Select a category</option>
+                        <option value="0">General</option>
+                        <option value="1">Governance</option>
+                        <option value="2">Technical</option>
+                        <option value="3">Economic</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="poll-end-time">End Time</label>
+                    <input type="datetime-local" id="poll-end-time" name="poll-end-time" required>
+                </div>
+                <div class="form-group">
+                    <label for="poll-reward">Reward Amount (APT)</label>
+                    <input type="number" id="poll-reward" name="poll-reward" required min="0" step="0.1" placeholder="Enter reward amount">
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-plus"></i> Create Poll
+                </button>
+            </form>
+        </div>
+
+        <div class="stats-section" id="statsSection">
+            <div class="stat-card">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Total Votes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Active Polls</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Total Polls</div>
+            </div>
+        </div>
+
+        <div class="category-filter">
+            <button class="category-btn active" data-category="all">
+                <i class="fas fa-th-large"></i> All
+            </button>
+            <button class="category-btn" data-category="governance">
+                <i class="fas fa-landmark"></i> Governance
+            </button>
+            <button class="category-btn" data-category="technical">
+                <i class="fas fa-code"></i> Technical
+            </button>
+            <button class="category-btn" data-category="economic">
+                <i class="fas fa-chart-line"></i> Economic
+            </button>
+        </div>
+
+        <div class="polls-header">
+            <h2><i class="fas fa-poll-h"></i> Active Polls</h2>
+            <div class="polls-sort">
+                <select id="sort-polls">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="votes">Most Votes</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="polls-grid" id="pollsGrid">
+            <!-- Polls will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <div class="modal" id="pollModal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="modal-body">
+                <!-- Poll details will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="floating-crypto">
+        <!-- Floating crypto icons will be dynamically inserted here -->
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
