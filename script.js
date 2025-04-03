@@ -19,35 +19,19 @@ const POLL_STATUS = {
 
 // Contract Configuration
 const CONTRACT_ADDRESS = '0x53a476e0017d801d2d77c5267f2b03fc78572664a417e8ae837b977ddc40a6fb';
+const MODULE_NAME = 'Voting';
 const NETWORK = 'devnet';
 
-// Contract ABI
-const CONTRACT_ABI = [
-    // Add your contract ABI here
-    {
-        "name": "createPoll",
-        "type": "entry",
-        "visibility": "public",
-        "generic_type_params": [],
-        "params": ["&signer", "vector<u8>", "vector<u8>", "u64", "u64"],
-        "return": []
-    },
-    {
-        "name": "vote",
-        "type": "entry",
-        "visibility": "public",
-        "generic_type_params": [],
-        "params": ["&signer", "u64"],
-        "return": []
-    },
-    {
-        "name": "getPolls",
-        "type": "view",
-        "visibility": "public",
-        "generic_type_params": [],
-        "params": [],
-        "return": ["vector<Poll>"]
-    }
+// Predefined Polls
+const PREDEFINED_POLLS = [
+    { id: 1, amount: 5, description: "Vote for $5 prize amount" },
+    { id: 2, amount: 10, description: "Vote for $10 prize amount" },
+    { id: 3, amount: 25, description: "Vote for $25 prize amount" },
+    { id: 4, amount: 50, description: "Vote for $50 prize amount" },
+    { id: 5, amount: 100, description: "Vote for $100 prize amount" },
+    { id: 6, amount: 250, description: "Vote for $250 prize amount" },
+    { id: 7, amount: 500, description: "Vote for $500 prize amount" },
+    { id: 8, amount: 1000, description: "Vote for $1000 prize amount" }
 ];
 
 // Wallet connection state
@@ -55,6 +39,9 @@ let wallet = null;
 let walletAddress = null;
 let isConnected = false;
 let polls = [];
+
+// Add temporary vote storage
+let temporaryVotes = new Map();
 
 // DOM Elements
 const connectWalletBtn = document.getElementById('connectWallet');
@@ -70,11 +57,41 @@ const closeModal = document.querySelector('.close-modal');
 
 // Initialize the application
 async function init() {
-    await setupEventListeners();
-    await checkWalletStatus();
-    await loadPolls();
-    setupCryptoData();
-    setupFloatingIcons();
+    try {
+        await setupEventListeners();
+        await checkWalletStatus();
+        
+        // Initialize Vanta.js animation
+        VANTA.WAVES({
+            el: "#vanta-background",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0x9333ea,
+            shininess: 35.00,
+            waveHeight: 15.00,
+            waveSpeed: 0.75,
+            zoom: 0.65
+        });
+        
+        // Display predefined polls immediately
+        const initialPolls = PREDEFINED_POLLS.map(poll => ({
+            ...poll,
+            votes_for: 0,
+            votes_against: 0
+        }));
+        displayPolls(initialPolls);
+        updateStats(initialPolls);
+        setupCryptoData();
+        setupFloatingIcons();
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        showError('Failed to initialize application');
+    }
 }
 
 // Check if Petra wallet is installed
@@ -125,8 +142,9 @@ async function disconnectWallet() {
             disconnectWalletBtn.style.display = 'none';
             showSuccess('Wallet disconnected successfully!');
 
-            // Reset poll count
-            resetPollCount();
+            // Clear polls display
+            pollsGrid.innerHTML = '';
+            displayPolls(PREDEFINED_POLLS);
         }
     } catch (error) {
         console.error('Failed to disconnect wallet:', error);
@@ -198,36 +216,47 @@ async function loadPolls() {
 
         pollsGrid.innerHTML = '<div class="loading-state"><i class="fas fa-spinner"></i></div>';
         
-        // Get polls from the contract
-        const response = await window.petra.view({
-            function: `${CONTRACT_ADDRESS}::Voting::get_proposals`,
-            type_arguments: [],
-            arguments: [] // Remove wallet address parameter
-        });
+        try {
+            // First verify if the module exists
+            const moduleExists = await checkModuleExists();
+            if (!moduleExists) {
+                throw new Error('Voting module not found. Please make sure the contract is deployed.');
+            }
 
-        polls = response;
-        displayPolls(polls);
-        updateStats(polls);
-        
-        // Update poll count in stats
-        const totalPolls = polls.length;
-        const activePolls = polls.filter(poll => new Date(poll.end_time) > new Date()).length;
-        const totalVotes = polls.reduce((sum, poll) => sum + (poll.votes_for + poll.votes_against), 0);
-        
-        statsSection.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-value">${totalVotes}</div>
-                <div class="stat-label">Total Votes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${activePolls}</div>
-                <div class="stat-label">Active Polls</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${totalPolls}</div>
-                <div class="stat-label">Total Polls</div>
-            </div>
-        `;
+            // Get polls from the contract
+            const response = await window.petra.view({
+                function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_proposals`,
+                type_arguments: [],
+                arguments: []
+            });
+
+            // Merge contract data with predefined polls
+            const polls = PREDEFINED_POLLS.map(poll => {
+                const contractData = response.find(p => p.id === poll.id) || { votes_for: 0, votes_against: 0 };
+                return {
+                    ...poll,
+                    votes_for: contractData.votes_for || 0,
+                    votes_against: contractData.votes_against || 0
+                };
+            });
+
+            displayPolls(polls);
+            updateStats(polls);
+        } catch (error) {
+            console.error('Contract interaction error:', error);
+            // If contract interaction fails, show predefined polls with zero votes
+            const polls = PREDEFINED_POLLS.map(poll => ({
+                ...poll,
+                votes_for: 0,
+                votes_against: 0
+            }));
+            displayPolls(polls);
+            updateStats(polls);
+            
+            if (error.message.includes('module not found')) {
+                showError('Smart contract not found. Please make sure it is deployed correctly.');
+            }
+        }
     } catch (error) {
         console.error('Failed to load polls:', error);
         showError('Failed to load polls. Please try again.');
@@ -236,234 +265,119 @@ async function loadPolls() {
 
 // Display Polls
 function displayPolls(polls) {
-    pollsGrid.innerHTML = '';
-    
-    if (!polls || polls.length === 0) {
-        pollsGrid.innerHTML = `
-            <div class="no-polls">
-                <i class="fas fa-poll-h"></i>
-                <p>No active polls found. Create one to get started!</p>
+    const pollsHtml = polls.map(poll => {
+        const hasTemporaryVote = temporaryVotes.has(poll.id);
+        const totalVotes = (poll.votes_for || 0) + (poll.votes_against || 0);
+        const votePercentage = totalVotes > 0 ? ((poll.votes_for || 0) / totalVotes) * 100 : 0;
+        
+        return `
+            <div class="poll-card">
+                <h3>$${poll.amount}</h3>
+                <p>${poll.description}</p>
+                <div class="poll-stats">
+                    <span class="vote-count">${totalVotes} votes</span>
+                    <div class="poll-progress">
+                        <div class="poll-progress-bar" style="width: ${votePercentage}%"></div>
+                    </div>
+                </div>
+                <div class="poll-actions">
+                    ${hasTemporaryVote ? 
+                        `<button class="btn" disabled>
+                            <i class="fas fa-check"></i> Vote Counted
+                        </button>` :
+                        `<button class="btn" onclick="temporaryVote(${poll.id})">
+                            <i class="fas fa-vote-yea"></i> Vote
+                        </button>`
+                    }
+                </div>
             </div>
         `;
-        return;
+    }).join('');
+
+    pollsGrid.innerHTML = pollsHtml;
+
+    // Add approve button if there are temporary votes
+    if (temporaryVotes.size > 0) {
+        const approveSection = document.createElement('div');
+        approveSection.className = 'approve-section';
+        approveSection.innerHTML = `
+            <div class="temporary-votes-summary">
+                <h3>Pending Votes</h3>
+                <p>${temporaryVotes.size} vote${temporaryVotes.size !== 1 ? 's' : ''} ready to be approved</p>
+            </div>
+            <button class="btn btn-approve" onclick="approveVotes()">
+                <i class="fas fa-check-double"></i> Approve Votes with Wallet
+            </button>
+        `;
+        pollsGrid.insertAdjacentElement('beforebegin', approveSection);
     }
-    
-    polls.forEach(poll => {
-        const pollCard = createPollCard(poll);
-        pollsGrid.appendChild(pollCard);
-    });
 }
 
-// Create Poll Card
-function createPollCard(poll) {
-    const pollCard = document.createElement('div');
-    pollCard.className = 'poll-card';
-    
-    // Convert category ID to category key
-    const categoryKey = getCategoryKey(poll.category);
-    pollCard.dataset.category = categoryKey;
-    pollCard.dataset.createdAt = poll.created_at;
-    pollCard.dataset.voteCount = poll.vote_count;
-    
-    const category = POLL_CATEGORIES[categoryKey];
-    const hasVoted = poll.voters.includes(walletAddress);
-    const timeRemaining = getTimeRemaining(poll.end_time);
-    const totalVotes = poll.votes_for + poll.votes_against;
-    
-    pollCard.innerHTML = `
-        <div class="poll-category">
-            <i class="fas fa-${category.icon}"></i> ${category.label}
-        </div>
-        <div class="reward-badge">
-            <i class="fas fa-gift"></i> ${poll.reward_amount} APT
-        </div>
-        <div class="poll-header">
-            <div class="poll-title">
-                <i class="fas fa-poll-h"></i>
-                <h3>${poll.title}</h3>
-            </div>
-            <div class="poll-meta">
-                <span class="time-remaining ${timeRemaining.urgent ? 'urgent' : ''}">
-                    <i class="far fa-clock"></i> ${timeRemaining.text}
-                </span>
-                <span><i class="fas fa-users"></i> ${poll.voters.length} voters</span>
-                <span><i class="far fa-calendar"></i> ${formatDate(poll.created_at)}</span>
-            </div>
-        </div>
-        <p class="poll-description">${poll.description}</p>
-        <div class="poll-progress">
-            <div class="poll-progress-bar" style="width: ${(totalVotes / 100) * 100}%"></div>
-        </div>
-        <div class="poll-footer">
-            <span class="vote-count">
-                <i class="fas fa-chart-bar"></i> ${totalVotes} votes
-                (${poll.votes_for} for, ${poll.votes_against} against)
-            </span>
-            ${!hasVoted ? `
-                <button class="btn vote-btn" data-poll-id="${poll.id}">
-                    <i class="fas fa-vote-yea"></i> Vote
-                </button>
-            ` : '<span class="voted"><i class="fas fa-check-circle"></i> Voted</span>'}
-        </div>
-    `;
-    
-    // Add event listeners
-    const voteBtn = pollCard.querySelector('.vote-btn');
-    if (voteBtn) {
-        voteBtn.addEventListener('click', () => vote(poll.id));
+// Function to handle temporary voting
+function temporaryVote(pollId) {
+    temporaryVotes.set(pollId, true);
+    showSuccess('Vote counted! Approve with wallet when ready.');
+    displayPolls(PREDEFINED_POLLS); // Refresh display to show updated state
+}
+
+// Function to approve votes with wallet
+async function approveVotes() {
+    if (!isConnected) {
+        showError('Please connect your wallet first');
+        return;
     }
-    
-    pollCard.addEventListener('click', (e) => {
-        if (!e.target.closest('.vote-btn')) {
-            showPollDetails(poll);
+
+    try {
+        const button = document.querySelector('.btn-approve');
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving...';
+
+        // Get the petra provider
+        const provider = window.petra;
+        if (!provider) {
+            throw new Error('Petra wallet not found');
         }
-    });
-    
-    return pollCard;
-}
 
-// Show Poll Details Modal
-function showPollDetails(poll) {
-    const modalBody = document.querySelector('.modal-body');
-    const category = POLL_CATEGORIES[getCategoryKey(poll.category)];
-    const timeRemaining = getTimeRemaining(poll.end_time);
-    const totalVotes = poll.votes_for + poll.votes_against;
-    
-    modalBody.innerHTML = `
-        <h2>${poll.title}</h2>
-        <div class="poll-meta">
-            <span class="poll-category">
-                <i class="fas fa-${category.icon}"></i> ${category.label}
-            </span>
-            <span class="time-remaining ${timeRemaining.urgent ? 'urgent' : ''}">
-                <i class="far fa-clock"></i> ${timeRemaining.text}
-            </span>
-            <span><i class="fas fa-users"></i> ${poll.voters.length} voters</span>
-            <span><i class="far fa-calendar"></i> Created: ${formatDate(poll.created_at)}</span>
-        </div>
-        <div class="poll-description">${poll.description}</div>
-        <div class="poll-progress">
-            <div class="poll-progress-bar" style="width: ${(totalVotes / 100) * 100}%"></div>
-        </div>
-        <div class="poll-reward">
-            <i class="fas fa-gift"></i> Reward: ${poll.reward_amount} APT
-        </div>
-        <div class="poll-voters">
-            <h3>Voters</h3>
-            <div class="voters-list">
-                ${poll.voters.map(voter => `
-                    <div class="voter-address">
-                        <i class="fas fa-user"></i> ${formatAddress(voter)}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-    
-    pollModal.classList.add('active');
-}
-
-// Create Poll
-async function handleCreatePoll(event) {
-    event.preventDefault();
-    
-    if (!isConnected) {
-        showError('Please connect your wallet first');
-        return;
-    }
-
-    const formData = new FormData(event.target);
-    const title = formData.get('poll-title');
-    const description = formData.get('poll-description');
-    const category = formData.get('poll-category');
-    const endTime = formData.get('poll-end-time');
-    const rewardAmount = formData.get('poll-reward');
-
-    try {
-        const button = event.target.querySelector('button[type="submit"]');
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-
-        // Call contract method to create poll using Petra wallet
+        // Create the transaction payload for all temporary votes
+        const pollIds = Array.from(temporaryVotes.keys());
         const payload = {
-            function: `${CONTRACT_ADDRESS}::Voting::create_proposal`,
+            type: "entry_function_payload",
+            function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::vote_on_proposals`,
             type_arguments: [],
-            arguments: [
-                title,
-                description,
-                category,
-                endTime,
-                rewardAmount
-            ]
+            arguments: [pollIds]
         };
 
-        // Submit transaction without waiting for approval
-        await window.petra.submitTransaction(payload);
-        
-        showSuccess('Poll created successfully!');
-        event.target.reset();
-        
-        // Update polls and stats immediately
-        await loadPolls();
-        updateStats(polls);
+        // Submit the transaction
+        const pendingTransaction = await provider.signAndSubmitTransaction(payload);
+        console.log('Transaction submitted:', pendingTransaction);
+
+        // Wait for transaction confirmation
+        const result = await waitForTransaction(pendingTransaction.hash);
+        console.log('Transaction result:', result);
+
+        if (result && result.success) {
+            showSuccess('Votes approved successfully!');
+            temporaryVotes.clear(); // Clear temporary votes after approval
+            await loadPolls(); // Refresh polls to show updated vote count
+        } else {
+            throw new Error('Transaction failed to complete');
+        }
     } catch (error) {
-        console.error('Failed to create poll:', error);
-        showError('Failed to create poll. Please try again.');
+        console.error('Failed to approve votes:', error);
+        showError(`Failed to approve votes: ${error.message || 'Please try again.'}`);
     } finally {
-        const button = event.target.querySelector('button[type="submit"]');
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-plus"></i> Create Poll';
+        const button = document.querySelector('.btn-approve');
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-check-double"></i> Approve Votes with Wallet';
+        }
     }
 }
 
-// Vote
-async function vote(pollId) {
-    if (!isConnected) {
-        showError('Please connect your wallet first');
-        return;
-    }
-
-    try {
-        const button = event.currentTarget;
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Voting...';
-
-        // Call contract method to vote
-        const payload = {
-            function: `${CONTRACT_ADDRESS}::Voting::vote_on_proposal`,
-            type_arguments: [],
-            arguments: [
-                pollId,
-                true // vote_in_favor parameter
-            ]
-        };
-
-        const response = await window.petra.signAndSubmitTransaction(payload);
-        console.log('Vote submitted:', response);
-
-        showSuccess('Vote recorded successfully!');
-        await loadPolls();
-    } catch (error) {
-        console.error('Failed to record vote:', error);
-        showError('Failed to record vote');
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-vote-yea"></i> Vote';
-    }
-}
-
-// Crypto Data Setup
+// Setup Crypto Data
 async function setupCryptoData() {
     const tickerContent = document.querySelector('.ticker-content');
     if (!tickerContent) return;
-
-    // Create ticker container if it doesn't exist
-    let tickerContainer = document.querySelector('.crypto-ticker');
-    if (!tickerContainer) {
-        tickerContainer = document.createElement('div');
-        tickerContainer.className = 'crypto-ticker';
-        tickerContainer.innerHTML = '<div class="ticker-content"></div>';
-        document.body.insertBefore(tickerContainer, document.body.firstChild);
-    }
 
     // Initialize ticker items
     tickerContent.innerHTML = CRYPTO_SYMBOLS.map(symbol => `
@@ -508,6 +422,23 @@ async function updateCryptoPrices() {
         });
     } catch (error) {
         console.error('Failed to update crypto prices:', error);
+        // Fallback to static prices if API fails
+        const fallbackPrices = {
+            'BTC': 50000,
+            'ETH': 3000,
+            'APT': 10,
+            'SOL': 100,
+            'ADA': 0.5
+        };
+
+        CRYPTO_SYMBOLS.forEach(symbol => {
+            const tickerItem = document.querySelector(`.ticker-item[data-symbol="${symbol}"]`);
+            if (!tickerItem) return;
+
+            const price = fallbackPrices[symbol];
+            tickerItem.querySelector('.price').textContent = 
+                `$${price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        });
     }
 }
 
@@ -526,8 +457,8 @@ function setupFloatingIcons() {
 
 // Update Stats
 function updateStats(polls) {
-    const totalVotes = polls.reduce((sum, poll) => sum + parseInt(poll.vote_count), 0);
-    const activePolls = polls.filter(poll => new Date(poll.end_time) > new Date()).length;
+    const totalVotes = polls.reduce((sum, poll) => sum + (poll.votes_for + poll.votes_against), 0);
+    const activePolls = polls.length;
     const totalPolls = polls.length;
 
     statsSection.innerHTML = `
@@ -555,6 +486,23 @@ function formatDate(timestamp) {
         hour: '2-digit',
         minute: '2-digit'
     });
+}
+
+// Check if the Voting module exists
+async function checkModuleExists() {
+    try {
+        await window.petra.view({
+            function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::get_proposals`,
+            type_arguments: [],
+            arguments: []
+        });
+        return true;
+    } catch (error) {
+        if (error.message.includes('module not found')) {
+            return false;
+        }
+        throw error;
+    }
 }
 
 function showError(message) {
@@ -665,25 +613,6 @@ function getTimeRemaining(endTime) {
 function formatAddress(address) {
     if (!address) return 'Not Connected';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-// Reset poll count
-function resetPollCount() {
-    const statsSection = document.getElementById('statsSection');
-    statsSection.innerHTML = `
-        <div class="stat-card">
-            <div class="stat-value">0</div>
-            <div class="stat-label">Total Polls</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">0</div>
-            <div class="stat-label">Active Polls</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">0</div>
-            <div class="stat-label">Total Votes</div>
-        </div>
-    `;
 }
 
 // Initialize the application
