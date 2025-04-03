@@ -8,8 +8,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@petra-plugin/aptos-wallet-adapter@1.0.0/dist/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
 </head>
 <body>
+    <div id="vanta-background"></div>
+    <div class="crypto-ticker">
+        <div class="ticker-content">
+            <!-- Crypto prices will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <div class="floating-crypto">
+        <!-- Floating crypto icons will be dynamically inserted here -->
+    </div>
+
     <div class="container">
         <header>
             <h1><i class="fas fa-vote-yea"></i> Aptos Voting DApp</h1>
@@ -23,41 +36,6 @@
                 </button>
             </div>
         </header>
-
-        <div class="create-poll">
-            <h2><i class="fas fa-plus-circle"></i> Create New Poll</h2>
-            <form id="create-poll-form">
-                <div class="form-group">
-                    <label for="poll-title">Poll Title</label>
-                    <input type="text" id="poll-title" name="poll-title" required placeholder="Enter poll title">
-                </div>
-                <div class="form-group">
-                    <label for="poll-description">Description</label>
-                    <textarea id="poll-description" name="poll-description" required placeholder="Describe your poll"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="poll-category">Category</label>
-                    <select id="poll-category" name="poll-category" required>
-                        <option value="">Select a category</option>
-                        <option value="0">General</option>
-                        <option value="1">Governance</option>
-                        <option value="2">Technical</option>
-                        <option value="3">Economic</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="poll-end-time">End Time</label>
-                    <input type="datetime-local" id="poll-end-time" name="poll-end-time" required>
-                </div>
-                <div class="form-group">
-                    <label for="poll-reward">Reward Amount (APT)</label>
-                    <input type="number" id="poll-reward" name="poll-reward" required min="0" step="0.1" placeholder="Enter reward amount">
-                </div>
-                <button type="submit" class="btn">
-                    <i class="fas fa-plus"></i> Create Poll
-                </button>
-            </form>
-        </div>
 
         <div class="stats-section" id="statsSection">
             <div class="stat-card">
@@ -74,35 +52,181 @@
             </div>
         </div>
 
-        <div class="category-filter">
-            <button class="category-btn active" data-category="all">
-                <i class="fas fa-th-large"></i> All
-            </button>
-            <button class="category-btn" data-category="governance">
-                <i class="fas fa-landmark"></i> Governance
-            </button>
-            <button class="category-btn" data-category="technical">
-                <i class="fas fa-code"></i> Technical
-            </button>
-            <button class="category-btn" data-category="economic">
-                <i class="fas fa-chart-line"></i> Economic
-            </button>
-        </div>
-
         <div class="polls-header">
-            <h2><i class="fas fa-poll-h"></i> Active Polls</h2>
-            <div class="polls-sort">
-                <select id="sort-polls">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                    <option value="votes">Most Votes</option>
-                </select>
-            </div>
+            <h2><i class="fas fa-poll-h"></i> Vote on Prize Amounts</h2>
+            <p class="subtitle">Choose your preferred prize amount for the next event</p>
         </div>
 
         <div class="polls-grid" id="pollsGrid">
             <!-- Polls will be dynamically inserted here -->
         </div>
+
+        <!-- Cryptocurrency Knowledge Section -->
+        <section class="crypto-knowledge">
+            <div class="heading-container">
+                <div class="floating-icons">
+                    <i class="fab fa-bitcoin"></i>
+                    <i class="fab fa-ethereum"></i>
+                    <i class="fas fa-coins bnb-icon"></i>
+                    <i class="fas fa-bolt solana-icon"></i>
+                    <i class="fas fa-star stellar-icon"></i>
+                    <i class="fas fa-mountain avalanche-icon"></i>
+                </div>
+                <h2><i class="fas fa-graduation-cap"></i> Cryptocurrency <span class="highlight">Knowledge</span> Hub</h2>
+            </div>
+            
+            <div class="crypto-cards">
+                <div class="crypto-info-card bitcoin">
+                    <div class="crypto-icon">
+                        <i class="fab fa-bitcoin"></i>
+                    </div>
+                    <h3>Bitcoin (BTC)</h3>
+                    <p>The first and most well-known cryptocurrency, created by Satoshi Nakamoto in 2009. Bitcoin operates on a decentralized network using blockchain technology.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> Market Cap Leader</li>
+                        <li><i class="fas fa-check-circle"></i> Store of Value</li>
+                        <li><i class="fas fa-check-circle"></i> Limited Supply: 21M</li>
+                    </ul>
+                </div>
+
+                <div class="crypto-info-card ethereum">
+                    <div class="crypto-icon">
+                        <i class="fab fa-ethereum"></i>
+                    </div>
+                    <h3>Ethereum (ETH)</h3>
+                    <p>A decentralized platform that enables smart contracts and DApps. Ethereum introduced programmable blockchain technology to the world.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> Smart Contracts</li>
+                        <li><i class="fas fa-check-circle"></i> DeFi Leader</li>
+                        <li><i class="fas fa-check-circle"></i> NFT Platform</li>
+                    </ul>
+                </div>
+
+                <div class="crypto-info-card bnb">
+                    <div class="crypto-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <h3>Binance Coin (BNB)</h3>
+                    <p>The native cryptocurrency of Binance Chain and Binance Smart Chain. Powers the Binance ecosystem and its various applications.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> Exchange Token</li>
+                        <li><i class="fas fa-check-circle"></i> Smart Chain</li>
+                        <li><i class="fas fa-check-circle"></i> Low Fees</li>
+                    </ul>
+                </div>
+
+                <div class="crypto-info-card dogecoin">
+                    <div class="crypto-icon">
+                        <i class="fas fa-dog"></i>
+                    </div>
+                    <h3>Dogecoin (DOGE)</h3>
+                    <p>Started as a meme cryptocurrency, Dogecoin has grown into a popular digital currency for tipping and transactions, known for its fun community.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> Community Driven</li>
+                        <li><i class="fas fa-check-circle"></i> Fast Transactions</li>
+                        <li><i class="fas fa-check-circle"></i> Low Transaction Fees</li>
+                    </ul>
+                </div>
+
+                <div class="crypto-info-card avalanche">
+                    <div class="crypto-icon">
+                        <i class="fas fa-mountain"></i>
+                    </div>
+                    <h3>Avalanche (AVAX)</h3>
+                    <p>A high-performance blockchain platform focused on speed, low costs, and eco-friendliness. Supports multiple virtual machines including EVM.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> High Speed</li>
+                        <li><i class="fas fa-check-circle"></i> Eco-Friendly</li>
+                        <li><i class="fas fa-check-circle"></i> Subnet Architecture</li>
+                    </ul>
+                </div>
+
+                <div class="crypto-info-card ripple">
+                    <div class="crypto-icon">
+                        <i class="fas fa-wave-square"></i>
+                    </div>
+                    <h3>Ripple (XRP)</h3>
+                    <p>A digital payment protocol and cryptocurrency designed for fast, low-cost international money transfers and financial institution settlements.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> Fast Settlements</li>
+                        <li><i class="fas fa-check-circle"></i> Bank Partnerships</li>
+                        <li><i class="fas fa-check-circle"></i> Cross-border Payments</li>
+                    </ul>
+                </div>
+
+                <div class="crypto-info-card tether">
+                    <div class="crypto-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <h3>Tether (USDT)</h3>
+                    <p>The most widely used stablecoin, pegged to the US Dollar. Tether provides stability in crypto markets and serves as a bridge between traditional finance and crypto.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> 1:1 USD Peg</li>
+                        <li><i class="fas fa-check-circle"></i> High Liquidity</li>
+                        <li><i class="fas fa-check-circle"></i> Multi-chain Support</li>
+                    </ul>
+                </div>
+
+                <div class="crypto-info-card solana">
+                    <div class="crypto-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3>Solana (SOL)</h3>
+                    <p>A high-performance blockchain platform known for its incredible speed and low transaction costs. Popular for DeFi, NFTs, and Web3 applications.</p>
+                    <ul class="crypto-features">
+                        <li><i class="fas fa-check-circle"></i> Ultra-fast Transactions</li>
+                        <li><i class="fas fa-check-circle"></i> Proof of History</li>
+                        <li><i class="fas fa-check-circle"></i> Scalable Architecture</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="about-section">
+            <div class="about-container">
+                <h2><i class="fas fa-info-circle"></i> About <span class="highlight">Aptos</span> Prize Voting</h2>
+                
+                <div class="about-grid">
+                    <div class="about-card mission">
+                        <div class="about-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h3>Our Mission</h3>
+                        <p>Empowering the Aptos community through decentralized prize voting, enabling transparent and fair decision-making for reward distributions.</p>
+                    </div>
+
+                    <div class="about-card features">
+                        <div class="about-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <h3>Key Features</h3>
+                        <ul>
+                            <li><i class="fas fa-check-circle"></i> Secure blockchain voting</li>
+                            <li><i class="fas fa-check-circle"></i> Real-time price tracking</li>
+                            <li><i class="fas fa-check-circle"></i> Community-driven decisions</li>
+                            <li><i class="fas fa-check-circle"></i> Transparent results</li>
+                        </ul>
+                    </div>
+
+                    <div class="about-card technology">
+                        <div class="about-icon">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <h3>Technology</h3>
+                        <p>Built on the Aptos blockchain, utilizing Move smart contracts for secure and efficient voting mechanisms. Integrated with Petra Wallet for seamless transactions.</p>
+                    </div>
+
+                    <div class="about-card community">
+                        <div class="about-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Community</h3>
+                        <p>Join our growing community of voters and contributors. Help shape the future of prize distributions in the Aptos ecosystem.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <div class="modal" id="pollModal">
@@ -112,10 +236,6 @@
                 <!-- Poll details will be dynamically inserted here -->
             </div>
         </div>
-    </div>
-
-    <div class="floating-crypto">
-        <!-- Floating crypto icons will be dynamically inserted here -->
     </div>
 
     <script src="script.js"></script>
