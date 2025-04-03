@@ -1,54 +1,27 @@
-module MyModule::Voting {
-    use std::signer;
+module MyModule::VotingSystem {
+    use aptos_framework::signer;
+    use std::string::String;
     use std::vector;
-    use aptos_framework::account;
 
-    /// Struct representing a voting proposal
-    struct Proposal has store, key {
-        id: u64,
-        description: vector<u8>,
-        votes_for: u64,
-        votes_against: u64,
-        voters: vector<address>
+    struct Proposal has key, store {
+        name: String,
+        voters: vector<address>, // Ensure it's a vector type
     }
 
-    /// Function to create a new voting proposal
-    public fun create_proposal(
-        creator: &signer, 
-        description: vector<u8>
-    ) {
+    /// Function to create a new proposal
+    public fun create_proposal(owner: &signer, name: String) {
         let proposal = Proposal {
-            id: account::get_sequence_number(signer::address_of(creator)),
-            description,
-            votes_for: 0,
-            votes_against: 0,
-            voters: vector::empty()
+            name,
+            voters: vector::empty<address>(), // Initialize as an empty vector
         };
-        move_to(creator, proposal);
+        move_to(owner, proposal);
     }
 
-    /// Function to vote on an existing proposal
-    public fun vote_on_proposal(
-        voter: &signer, 
-        proposal_creator: address, 
-        vote_in_favor: bool
-    ) acquires Proposal {
-        let proposal = borrow_global_mut<Proposal>(proposal_creator);
-        
-        // Check if voter has already voted
-        assert!(
-            !vector::contains(&proposal.voters, &signer::address_of(voter)), 
-            1
-        );
+    /// Function to vote on a proposal
+    public fun vote(voter: &signer, proposal_owner: address) acquires Proposal {
+        let proposal = borrow_global_mut<Proposal>(proposal_owner);
 
-        // Record the vote
-        if (vote_in_favor) {
-            proposal.votes_for = proposal.votes_for + 1;
-        } else {
-            proposal.votes_against = proposal.votes_against + 1;
-        };
-
-        // Add voter to prevent multiple votes
+        // Add voter's address to the list of voters
         vector::push_back(&mut proposal.voters, signer::address_of(voter));
     }
 }
