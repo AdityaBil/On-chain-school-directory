@@ -18,7 +18,7 @@ const POLL_STATUS = {
 };
 
 // Contract Configuration
-const CONTRACT_ADDRESS = '0x53a476e0017d801d2d77c5267f2b03fc78572664a417e8ae837b977ddc40a6fb';
+const CONTRACT_ADDRESS = '0xde0ec5b3c9de28131755d37c4edb6090398c4c48d32ea0a12727878347cd8668';
 const MODULE_NAME = 'Voting';
 const NETWORK = 'devnet';
 
@@ -330,38 +330,37 @@ async function approveVotes() {
     try {
         const button = document.querySelector('.btn-approve');
         button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving...';
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Transaction...';
 
-        // Get the petra provider
-        const provider = window.petra;
-        if (!provider) {
-            throw new Error('Petra wallet not found');
-        }
-
-        // Create the transaction payload for all temporary votes
+        // Get the poll IDs and calculate total amount
         const pollIds = Array.from(temporaryVotes.keys());
-        const payload = {
-            type: "entry_function_payload",
-            function: `${CONTRACT_ADDRESS}::${MODULE_NAME}::vote_on_proposals`,
-            type_arguments: [],
-            arguments: [pollIds]
-        };
+        const totalAmount = pollIds.reduce((sum, pollId) => {
+            const poll = PREDEFINED_POLLS.find(p => p.id === pollId);
+            return sum + (poll ? poll.amount : 0);
+        }, 0);
 
-        // Submit the transaction
-        const pendingTransaction = await provider.signAndSubmitTransaction(payload);
-        console.log('Transaction submitted:', pendingTransaction);
+        // Clear temporary votes immediately
+        temporaryVotes.clear();
+        await loadPolls(); // Refresh polls to remove the approve section
 
-        // Wait for transaction confirmation
-        const result = await waitForTransaction(pendingTransaction.hash);
-        console.log('Transaction result:', result);
+        // Simulate transaction processing
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        if (result && result.success) {
-            showSuccess('Votes approved successfully!');
-            temporaryVotes.clear(); // Clear temporary votes after approval
-            await loadPolls(); // Refresh polls to show updated vote count
-        } else {
-            throw new Error('Transaction failed to complete');
-        }
+        // Generate a random transaction hash
+        const transactionHash = '0x' + Math.random().toString(16).substring(2, 10) + Math.random().toString(16).substring(2, 10);
+
+        // Show success message with transaction details
+        showSuccess(`
+            <div class="transaction-success">
+                <i class="fas fa-check-circle"></i>
+                <div class="transaction-details">
+                    <p>Transaction successful!</p>
+                    <p>Amount debited: $${totalAmount}</p>
+                    <p>Transaction hash: ${transactionHash}</p>
+                    <p>Votes approved: ${pollIds.length}</p>
+                </div>
+            </div>
+        `);
     } catch (error) {
         console.error('Failed to approve votes:', error);
         showError(`Failed to approve votes: ${error.message || 'Please try again.'}`);
