@@ -1591,4 +1591,49 @@ select:focus {
         width: 100%;
         justify-content: center;
     }
+}
+
+/* Transaction Success Message */
+.transaction-success {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid #22c55e;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+.transaction-success i {
+    font-size: 1.5rem;
+    color: #22c55e;
+    margin-top: 0.25rem;
+}
+
+.transaction-details {
+    flex: 1;
+}
+
+.transaction-details p {
+    margin: 0.25rem 0;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.transaction-details p:first-child {
+    font-weight: 600;
+    color: #22c55e;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.transaction-details p:nth-child(2) {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+.transaction-details p:last-child {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
 } 
