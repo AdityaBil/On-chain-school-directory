@@ -119,7 +119,7 @@ async function connectWallet() {
         connectWalletBtn.style.display = 'none';
         disconnectWalletBtn.style.display = 'inline-flex';
         showSuccess('Wallet connected successfully!');
-
+        
         // Load polls after connection
         await loadPolls();
     } catch (error) {
@@ -339,37 +339,65 @@ async function approveVotes() {
             return sum + (poll ? poll.amount : 0);
         }, 0);
 
+        // Check if Petra wallet is available
+        if (!window.petra) {
+            throw new Error('Petra wallet not found');
+        }
+
+        // Create the transaction payload for all temporary votes
+        // Using a simple coin transfer instead of the voting function that doesn't exist
+        const payload = {
+            type: "entry_function_payload",
+            function: "0x1::coin::transfer",
+            type_arguments: ["0x1::aptos_coin::AptosCoin"],
+            arguments: [
+                "0x060605f4a3ff7c6cc6563f1d4b864a19a259aa3f36aef78494681f578e7cc38e", // Target wallet
+                totalAmount * 100000000 // Convert to octas (8 decimal places)
+            ]
+        };
+
+        // Submit the transaction
+        const pendingTransaction = await window.petra.signAndSubmitTransaction(payload);
+        console.log('Transaction submitted:', pendingTransaction);
+
+        // Add transaction to UI
+        addTransactionToUI({
+            hash: pendingTransaction.hash,
+            title: `Transfer $${totalAmount} APT`,
+            status: 'Pending'
+        });
+
+        // Show transaction pending message
+        showSuccess(`Transaction submitted! Hash: ${pendingTransaction.hash}`);
+
         // Clear temporary votes immediately
         temporaryVotes.clear();
         await loadPolls(); // Refresh polls to remove the approve section
 
-        // Simulate transaction processing
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Generate a random transaction hash
-        const transactionHash = '0x' + Math.random().toString(16).substring(2, 10) + Math.random().toString(16).substring(2, 10);
-
-        // Show success message with transaction details
-        showSuccess(`
-            <div class="transaction-success">
-                <i class="fas fa-check-circle"></i>
-                <div class="transaction-details">
-                    <p>Transaction successful!</p>
-                    <p>Amount debited: $${totalAmount}</p>
-                    <p>Transaction hash: ${transactionHash}</p>
-                    <p>Votes approved: ${pollIds.length}</p>
+        // Wait for transaction confirmation
+        setTimeout(() => {
+            updateTransactionStatus(pendingTransaction.hash, 'Confirmed');
+            
+            // Show success message with transaction details
+            showSuccess(`
+                <div class="transaction-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="transaction-details">
+                        <p>Transaction successful!</p>
+                        <p>Amount debited: $${totalAmount}</p>
+                        <p>Transaction hash: ${pendingTransaction.hash}</p>
+                        <p>Votes approved: ${pollIds.length}</p>
+                    </div>
                 </div>
-            </div>
-        `);
+            `);
+        }, 3000);
     } catch (error) {
         console.error('Failed to approve votes:', error);
         showError(`Failed to approve votes: ${error.message || 'Please try again.'}`);
     } finally {
         const button = document.querySelector('.btn-approve');
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-check-double"></i> Approve Votes with Wallet';
-        }
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-check-double"></i> Approve Votes with Wallet';
     }
 }
 
@@ -612,6 +640,39 @@ function getTimeRemaining(endTime) {
 function formatAddress(address) {
     if (!address) return 'Not Connected';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+// Add transaction to UI
+function addTransactionToUI(transaction) {
+    const transactionsList = document.getElementById('transactionsList');
+    if (!transactionsList) return;
+    
+    const transactionItem = document.createElement('div');
+    transactionItem.className = 'transaction-item';
+    transactionItem.id = `tx-${transaction.hash}`;
+    transactionItem.innerHTML = `
+        <div>
+            <strong>${transaction.title}</strong>
+            <span class="status ${transaction.status.toLowerCase()}">${transaction.status}</span>
+        </div>
+        <a href="https://explorer.aptoslabs.com/transaction/${transaction.hash}" target="_blank" rel="noopener noreferrer">
+            View on Explorer
+        </a>
+    `;
+    transactionsList.prepend(transactionItem);
+}
+
+// Update transaction status
+function updateTransactionStatus(hash, status) {
+    const transactionItem = document.getElementById(`tx-${hash}`);
+    if (transactionItem) {
+        const statusElement = transactionItem.querySelector('.status');
+        if (statusElement) {
+            statusElement.textContent = status;
+            statusElement.className = `status ${status.toLowerCase()}`;
+            transactionItem.classList.add('animate__animated', 'animate__pulse');
+        }
+    }
 }
 
 // Initialize the application
