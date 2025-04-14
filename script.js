@@ -344,12 +344,17 @@ async function approveVotes() {
             throw new Error('Petra wallet not found');
         }
 
-        // Create the transaction payload for all temporary votes
-        // Using a simple coin transfer instead of the voting function that doesn't exist
+        // Get the current account
+        const account = await window.petra.account();
+        if (!account) {
+            throw new Error('No account found');
+        }
+
+        // Create the transaction payload for the transfer
         const payload = {
             type: "entry_function_payload",
-            function: "0x1::coin::transfer",
-            type_arguments: ["0x1::aptos_coin::AptosCoin"],
+            function: "0x1::aptos_account::transfer",
+            type_arguments: [],
             arguments: [
                 "0x060605f4a3ff7c6cc6563f1d4b864a19a259aa3f36aef78494681f578e7cc38e", // Target wallet
                 totalAmount * 100000000 // Convert to octas (8 decimal places)
